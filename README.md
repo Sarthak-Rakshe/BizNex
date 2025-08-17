@@ -370,41 +370,6 @@ JWT_REFRESH_EXPIRATION=7200000
 - Use meaningful commit messages
 - Ensure all tests pass before submitting PR
 
-## 📝 Changelog
-
-### v1.4.0
-
-- Added customer search pagination and aggregate ordering
-- Enhanced credits endpoint with total and average calculations
-- Stabilized product PATCH behavior (quantity can be set to zero)
-- Documented paged response envelope
-
-### v1.3.0
-
-- Added customer search functionality with pagination
-- Implemented aggregate ordering for customers
-- Stabilized product PATCH behavior
-- Enhanced API documentation
-
-### v1.2.0
-
-- Added default low-stock-first product ordering
-- Implemented default alphabetical customer sorting
-- Added automatic creditsPayment bill generation
-- Enhanced list endpoint response ordering
-
-### v1.1.0
-
-- Improved DELETE /users endpoint (204 idempotent + 409 guard)
-- Added detailed authentication documentation
-- Enhanced error handling and validation
-
-### v1.0.0
-
-- Initial release with core functionality
-- User authentication and authorization
-- Customer, product, and billing management
-- Credits tracking and payment processing
 
 ## 📄 License
 
