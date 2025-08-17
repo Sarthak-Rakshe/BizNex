@@ -172,20 +172,6 @@ public class CustomerService {
         return customerRepository.avgPositiveCredits();
     }
 
-     /** Development bulk import – best-effort, duplicates skipped. */
-    @Transactional
-    public String addMultipleCustomers(List<CustomerDto> customerDtos) {
-        StringBuilder response = new StringBuilder();
-        for (CustomerDto customerDto : customerDtos) {
-            try {
-                CustomerDto addedCustomer = addCustomer(customerDto);
-                response.append("Added Customer: ").append(addedCustomer.getCustomerName()).append("\n");
-            } catch (DuplicateEntityException e) {
-                response.append("Duplicate Customer: ").append(customerDto.getCustomerName()).append("\n");
-            }
-        }
-        return response.toString();
-    }
 
     public Page<CustomerDto> searchCustomers(String rawQuery, Pageable pageable){
         String q = rawQuery == null ? "" : rawQuery.trim();

@@ -111,11 +111,5 @@ public class ProductController {
         return ResponseEntity.ok(PageResponseDto.from(dtoPage));
     }
 
-    /** Development-only bulk add helper (no transactional all-or-nothing). */
-    @PostMapping("/bulk")
-    public ResponseEntity<String> addMultipleProducts(@RequestBody List<ProductDto> productDtos) {
-        String response = productService.addMultipleProducts(productDtos);
-        return ResponseEntity.ok(response);
-    }
 
 }

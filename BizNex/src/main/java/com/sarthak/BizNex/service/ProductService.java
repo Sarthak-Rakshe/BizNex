@@ -164,20 +164,7 @@ public class ProductService {
         return productMapper.toDtoList(products);
     }
 
-    /** Best-effort bulk insert; duplicates are skipped with per-item messages. */
-    @Transactional
-    public String addMultipleProducts(List<ProductDto> productDtos) {
-        StringBuilder response = new StringBuilder();
-        for (ProductDto productDto : productDtos) {
-            try {
-                ProductDto addedProduct = addProduct(productDto);
-                response.append("Added Product: ").append(addedProduct.getProductName()).append("\n");
-            } catch (DuplicateEntityException e) {
-                response.append("Duplicate Product: ").append(productDto.getProductName()).append("\n");
-            }
-        }
-        return response.toString();
-    }
+
 
     public Page<ProductDto> getProductByCategory(String category, Pageable pageable){
         if (isDefaultProductSort(pageable)) {
