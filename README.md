@@ -383,12 +383,6 @@ For support and questions:
 - **Documentation**: Available in Swagger UI
 - **Issues**: GitHub Issues section
 
-## 🙏 Acknowledgments
-
-- Spring Boot team for the excellent framework
-- React team for the powerful frontend library
-- Tailwind CSS for the utility-first CSS framework
-- All contributors who helped improve this project
 
 ---
 
