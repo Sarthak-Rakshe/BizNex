@@ -20,14 +20,14 @@ import org.springdoc.core.models.GroupedOpenApi;
 @OpenAPIDefinition(
         info = @Info(
                 title = "BizNex API",
-                version = "v1.4.0",
-                description = "REST API for BizNex (products, customers, billing, auth)\n\nChangelog:\n- v1.4.0: " +
-                        "The get all credits now return total credits and average credits \n- v1.3.0: Added customer " +
-                        "search " +
-                        "pagination " +
-                        "aggregate" +
-                        " ordering & stabilized " +
-                        "product PATCH behavior (quantity can be set to zero). Documented paged response envelope.\n- v1.2.0: Added default low-stock-first product ordering (quantity < 10 first), default alphabetical customer sorting, automatic creditsPayment bill on customer credit decrease, documented list endpoint response ordering.\n- v1.1.0: DELETE /users now 204 (idempotent) + 409 guard; detailed Auth docs.\n- v1: Initial version.",
+                version = "v1.5.0",
+                description = "REST API for BizNex (products, customers, billing, auth)\n\nChangelog:\n" +
+                        "- v1.5.0: Added enforced first-login password change flow: new PATCH /api/v1/auth/first-login/password endpoint; authenticated users with password_changed=true receive HTTP 423 (PASSWORD_CHANGE_REQUIRED) on other endpoints until updated. Login returns mustChangePassword flag.\n" +
+                        "- v1.4.0: The get all credits now return total credits and average credits \n" +
+                        "- v1.3.0: Added customer search pagination aggregate ordering & stabilized product PATCH behavior (quantity can be set to zero). Documented paged response envelope.\n" +
+                        "- v1.2.0: Added default low-stock-first product ordering (quantity < 10 first), default alphabetical customer sorting, automatic creditsPayment bill on customer credit decrease, documented list endpoint response ordering.\n" +
+                        "- v1.1.0: DELETE /users now 204 (idempotent) + 409 guard; detailed Auth docs.\n" +
+                        "- v1: Initial version.",
                 contact = @Contact(name = "BizNex Support", email = "abc@gmail.com"),
                 license = @License(name = "Apache 2.0", url = "https://www.apache.org/licenses/LICENSE-2.0")
         ),

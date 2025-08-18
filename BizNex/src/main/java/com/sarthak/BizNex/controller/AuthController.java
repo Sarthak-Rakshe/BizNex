@@ -3,6 +3,8 @@ package com.sarthak.BizNex.controller;
 import com.sarthak.BizNex.dto.UserDto;
 import com.sarthak.BizNex.dto.request.AuthRequest;
 import com.sarthak.BizNex.dto.request.UserRegistrationRequest;
+import com.sarthak.BizNex.dto.request.FirstLoginPasswordChangeRequest;
+import com.sarthak.BizNex.dto.response.FirstLoginPasswordChangeResponse;
 import com.sarthak.BizNex.dto.response.AuthResponse;
 import com.sarthak.BizNex.entity.User;
 import com.sarthak.BizNex.security.JwtTokenProvider;
@@ -61,6 +63,7 @@ public class AuthController {
                 .expireAt(expiresAt)
                 .username(user.getUsername())
                 .userRole(user.getUserRole().name())
+                .mustChangePassword(user.isMustChangePassword())
                 .build();
 
         return ResponseEntity.ok(authResponse);
@@ -94,5 +97,15 @@ public class AuthController {
     })
     public ResponseEntity<String> forgotPassword(@RequestParam("username")String username){
         return ResponseEntity.ok("Please contact the administrator to reset your password.");
+    }
+
+    @PatchMapping("/first-login/password")
+    @Operation(summary = "Change password on first login (mustChangePassword only)")
+    public ResponseEntity<FirstLoginPasswordChangeResponse> firstLoginPasswordChange(
+            @RequestBody @Valid FirstLoginPasswordChangeRequest request,
+            Authentication authentication) {
+        String username = authentication.getName();
+        boolean changed = userService.selfFirstLoginPasswordChange(username, request.getNewPassword());
+        return ResponseEntity.ok(new FirstLoginPasswordChangeResponse(changed, changed ? "Password changed" : "No change required"));
     }
 }

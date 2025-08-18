@@ -54,6 +54,11 @@ public class User {
     @Setter
     private double userSalary;
 
+    // Flag requiring password change (set true for bootstrap admin)
+    @Setter
+    @Column(name = "password_changed", nullable = false)
+    private boolean mustChangePassword = false;
+
     public User(String username, String userEmail){
         this.username = username;
         this.userEmail = userEmail;

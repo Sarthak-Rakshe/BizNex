@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { userAPI } from "../utils/api";
@@ -17,6 +17,23 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { toasts, showSuccess, showError, removeToast } = useToast();
   const [forgotLoading, setForgotLoading] = useState(false);
+
+  // If backend says it's first-time (no users), redirect to setup flow
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await userAPI.checkFirstTime();
+        if (!mounted) return;
+        if (data === true) {
+          navigate("/first-time", { replace: true });
+        }
+      } catch (_) {}
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -44,10 +61,24 @@ const LoginPage = () => {
         throw new Error("No access token returned");
       }
 
+      // Detect first-time setup hint (optional): if backend indicates no users, send to /first-time
+      if (data?.firstTime === true) {
+        navigate("/first-time", { replace: true });
+        setLoading(false);
+        return;
+      }
+
       login(userData, token);
       if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
       showSuccess("Login successful!");
-      navigate("/dashboard");
+      if (data?.mustChangePassword) {
+        // Persist flag to user state for ProtectedRoute as well
+        const enriched = { ...userData, mustChangePassword: true };
+        login(enriched, token);
+        navigate("/force-password", { replace: true });
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       const msg =
         error?.response?.data?.message ||

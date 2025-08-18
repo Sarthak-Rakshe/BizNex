@@ -16,5 +16,5 @@ public class AuthResponse {
     private long expireAt;
     private String username;
     private String userRole;
-    // removed custom partial constructor to avoid builder conflict
+    private boolean mustChangePassword; // new flag for client enforcement
 }

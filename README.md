@@ -144,6 +144,25 @@ A comprehensive business management application designed to streamline operation
 
 ### Backend Setup
 
+#### First login (bootstrap admin) — instructions and rationale
+
+- Before starting the application, set the bootstrap admin values as environment variables or in `application.properties`:
+  - `APP_BOOTSTRAP_ADMIN_USER` (default: `admin`)
+  - `APP_BOOTSTRAP_ADMIN_PASSWORD` (REQUIRED — choose a strong secret)
+  - `APP_BOOTSTRAP_ADMIN_EMAIL` (optional, default like `user@example.com`)
+  - `APP_BOOTSTRAP_ADMIN_CONTACT` (optional phone number)
+- Start the backend so the bootstrap routine can create the initial admin account:
+  - `./mvnw spring-boot:run`
+- Perform initial login:
+  - Open the frontend at `http://localhost:5173` (or call `POST /api/v1/auth/login`) and use the bootstrap admin credentials.
+- Immediately after first login:
+  - Change the admin password to a unique, strong password via the user settings or `PATCH /api/v1/auth/first-login/password`.
+  - Create additional user accounts (Admin and User roles) as needed.
+  - Revoke or remove the bootstrap credentials from config or disable bootstrap logic in production.
+- Secure the environment:
+  - Rotate `JWT_SECRET` to a strong base64-encoded value if not already set.
+  - Store credentials and secrets in a secure vault or environment (do not commit to source control).
+
 1. **Clone the repository**
 
    ```bash
@@ -161,11 +180,19 @@ A comprehensive business management application designed to streamline operation
    DB_USERNAME=your_db_username
    DB_PASSWORD=your_db_password
 
+   # Set the admin and password for first login (No users in database)
+   APP_BOOTSTRAP_ADMIN_USER (default: admin)
+   APP_BOOTSTRAP_ADMIN_PASSWORD (REQUIRED – no default, for security)
+   APP_BOOTSTRAP_ADMIN_EMAIL (default: <user>@example.com)
+   APP_BOOTSTRAP_ADMIN_CONTACT (default: 9999999999)
+
    # JWT Configuration (use strong, base64-encoded secrets)
    JWT_SECRET=your_jwt_secret_base64
    JWT_EXPIRATION=3600000
    JWT_REFRESH_EXPIRATION=7200000
    ```
+
+   Adjust the CORS policy in config/SecurityConfig
 
 3. **Build and Run**
 

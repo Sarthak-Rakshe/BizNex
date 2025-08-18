@@ -58,6 +58,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const userRole = user?.userRole;
+  const mustChangePassword = !!user?.mustChangePassword;
   const isAdmin = userRole === "ADMIN";
   const hasRole = (role) => userRole === role;
 
@@ -71,6 +72,7 @@ export const AuthProvider = ({ children }) => {
     userRole,
     isAdmin,
     hasRole,
+    mustChangePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -19,4 +19,6 @@ public interface UserService {
         AdminPasswordUpdateResponse updatePassword(String username, AdminPasswordUpdateRequest request);
 
         String deleteUserByUsername(String username);
+
+        boolean selfFirstLoginPasswordChange(String username, String newPassword);
 }

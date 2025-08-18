@@ -40,6 +40,51 @@ export const userAPI = {
       handleError(err);
     }
   },
+  // First-time bootstrap check (no auth)
+  checkFirstTime: async () => {
+    try {
+      const data = await apiClient.request.request({
+        method: "GET",
+        url: "/api/v1/auth/first-time",
+      });
+      return ok(data);
+    } catch (err) {
+      // Treat protected/missing endpoints as not-first-time to avoid login page loops
+      if (err?.status === 401 || err?.status === 403 || err?.status === 404) {
+        return ok(false);
+      }
+      // Do not hard-redirect from here; surface error instead
+      const error = new Error(
+        err?.body?.message || err?.message || "first-time check failed"
+      );
+      error.original = err;
+      throw error;
+    }
+  },
+  // Bootstrap first admin (public in v1.5.x); tries primary then a fallback path
+  bootstrapFirstAdmin: async (payload) => {
+    try {
+      const data = await apiClient.request.request({
+        method: "POST",
+        url: "/api/v1/auth/first-time/setup",
+        body: payload,
+        mediaType: "application/json",
+      });
+      return ok(data);
+    } catch (err) {
+      if (err?.status === 404) {
+        // fallback path for some deployments
+        const data = await apiClient.request.request({
+          method: "POST",
+          url: "/api/v1/auth/bootstrap-admin",
+          body: payload,
+          mediaType: "application/json",
+        });
+        return ok(data);
+      }
+      handleError(err);
+    }
+  },
   forgotPassword: async (username) => {
     try {
       const data = await apiClient.auth.forgotPassword(String(username || ""));
@@ -47,6 +92,58 @@ export const userAPI = {
     } catch (err) {
       handleError(err);
     }
+  },
+  changeOwnPassword: async (username, newPassword) => {
+    try {
+      const data = await apiClient.users.updatePassword(username, {
+        newPassword,
+      });
+      return ok(data);
+    } catch (err) {
+      handleError(err);
+    }
+  },
+  // First-login forced password change endpoint (auth scope)
+  changePasswordFirstLogin: async (newPassword) => {
+    const variants = [
+      { method: "PATCH", body: { newPassword } },
+      { method: "POST", body: { newPassword } },
+      { method: "PATCH", body: { password: newPassword } },
+      { method: "POST", body: { password: newPassword } },
+    ];
+    for (const v of variants) {
+      try {
+        const data = await apiClient.request.request({
+          method: v.method,
+          url: "/api/v1/auth/first-login/password",
+          body: v.body,
+          mediaType: "application/json",
+        });
+        return ok(data);
+      } catch (err) {
+        if (err?.status === 404 || err?.status === 405 || err?.status === 415) {
+          // try next variant
+          continue;
+        }
+        // Other errors: rethrow
+        handleError(err);
+      }
+    }
+    // Fallback: users endpoint
+    try {
+      const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+      if (userData?.username) {
+        const data = await apiClient.users.updatePassword(userData.username, {
+          newPassword,
+        });
+        return ok(data);
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    throw new Error(
+      "Change password at /api/v1/auth/first-login/password before accessing other endpoints."
+    );
   },
   register: async (userData) => {
     try {

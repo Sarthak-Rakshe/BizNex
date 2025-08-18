@@ -4,7 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import LoadingSpinner from "./UI/LoadingSpinner";
 
 const ProtectedRoute = ({ children, requireRole }) => {
-  const { isAuthenticated, loading, isExpired, hasRole } = useAuth();
+  const { isAuthenticated, loading, isExpired, hasRole, mustChangePassword } =
+    useAuth();
 
   if (loading) {
     return (
@@ -25,6 +26,12 @@ const ProtectedRoute = ({ children, requireRole }) => {
         Not authorized
       </div>
     );
+  }
+
+  // Enforce forced password change before accessing app
+  // Allow access to the password change route itself to avoid loops
+  if (mustChangePassword) {
+    return <Navigate to="/force-password" replace />;
   }
 
   return children;

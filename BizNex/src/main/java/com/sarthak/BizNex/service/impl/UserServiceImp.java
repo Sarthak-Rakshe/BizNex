@@ -46,6 +46,7 @@ public class UserServiceImp implements UserService {
         user.setUserContact(request.getUserContact());
         user.setUserRole(request.getUserRole());
         user.setUserSalary(request.getUserSalary());
+        user.setMustChangePassword(false); // normal registrations do not require forced change
 
         return userRepository.save(user);
 
@@ -79,6 +80,10 @@ public class UserServiceImp implements UserService {
         validatePassword(request.getNewPassword());
 
         user.setUserPassword(passwordEncoder.encode(request.getNewPassword()));
+        // Clear forced-change flag after successful update
+        if (user.isMustChangePassword()) {
+            user.setMustChangePassword(false);
+        }
         userRepository.save(user);
 
         log.info("Password updated for user='{}'", user.getUsername());
@@ -91,12 +96,10 @@ public class UserServiceImp implements UserService {
         String normalized = username.toLowerCase();
         Optional<User> optional = userRepository.findByUsername(normalized);
         if(optional.isEmpty()) {
-            // Idempotent delete: nothing to remove
             log.info("Delete requested for non-existent user='{}' - ignoring", normalized);
-            return "User deleted successfully"; // uniform message
+            return "User deleted successfully";
         }
         User user = optional.get();
-        // Guard: prevent deletion of last remaining ADMIN
         if(user.getUserRole() == User.UserRole.ADMIN && userRepository.countByUserRole(User.UserRole.ADMIN) == 1) {
             log.warn("Attempt to delete last remaining admin user='{}' blocked", normalized);
             throw new IllegalStateException("Cannot delete the last remaining admin user");
@@ -104,6 +107,21 @@ public class UserServiceImp implements UserService {
         userRepository.delete(user);
         log.info("User deleted user='{}' role='{}'", normalized, user.getUserRole());
         return "User deleted successfully";
+    }
+
+    @Override
+    public boolean selfFirstLoginPasswordChange(String username, String newPassword) {
+        User user = userRepository.findByUsername(username.toLowerCase())
+                .orElseThrow(() -> new EntityNotFoundException("User not found with the username"));
+        if(!user.isMustChangePassword()) {
+            return false; // nothing to do
+        }
+        validatePassword(newPassword);
+        user.setUserPassword(passwordEncoder.encode(newPassword));
+        user.setMustChangePassword(false);
+        userRepository.save(user);
+        log.info("First-login password changed for user='{}'", user.getUsername());
+        return true;
     }
 
     private void validatePassword(@NotBlank String newPassword) {

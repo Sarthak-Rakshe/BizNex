@@ -346,10 +346,10 @@ const DashboardPage = () => {
             </text>
           );
         })}
-        {/* Data */}
+        {/* Data (use currentColor so parent text color controls theme) */}
         <polyline
           fill="none"
-          stroke="#3b82f6"
+          stroke="currentColor"
           strokeWidth={2}
           points={points}
         />
@@ -357,10 +357,10 @@ const DashboardPage = () => {
           const x = margin.left + i * xStep;
           const y = margin.top + innerH - ((d.amount || 0) / max) * innerH;
           return (
-            <circle key={`pt-${i}`} cx={x} cy={y} r={2.5} fill="#2563eb" />
+            <circle key={`pt-${i}`} cx={x} cy={y} r={2.5} fill="currentColor" />
           );
         })}
-        <polygon fill="#bfdbfe66" points={areaPoints} />
+        <polygon fill="currentColor" fillOpacity="0.18" points={areaPoints} />
         {/* Axis labels */}
         <text
           x={margin.left + innerW / 2}
@@ -469,7 +469,9 @@ const DashboardPage = () => {
                 Revenue (last 7 days)
               </h3>
               <div>
-                <LineChart data={revenueSeries} width={540} height={210} />
+                <div className="text-primary-600">
+                  <LineChart data={revenueSeries} width={540} height={210} />
+                </div>
                 <div className="mt-2 text-xs text-gray-500">
                   Total: ₹
                   {revenueSeries

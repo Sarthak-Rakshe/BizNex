@@ -3,6 +3,7 @@ package com.sarthak.BizNex.config;
 import com.sarthak.BizNex.security.JwtAuthenticationFilter;
 import com.sarthak.BizNex.security.RestAccessDeniedHandler;
 import com.sarthak.BizNex.security.RestAuthEntryPoint;
+import com.sarthak.BizNex.security.ForcePasswordChangeFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,6 +36,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RestAuthEntryPoint restAuthEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
+    private final ForcePasswordChangeFilter forcePasswordChangeFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -48,7 +50,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // Only login & forgot-password are public
-                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/forgot-password").permitAll()
+                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/forgot-password", "/api/v1/auth/first-login/password").permitAll()
                         // OpenAPI / Swagger UI endpoints
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -62,7 +64,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(forcePasswordChangeFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

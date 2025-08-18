@@ -18,6 +18,8 @@ import BillingPage from "./pages/BillingPage";
 import CreditsPage from "./pages/CreditsPage";
 import BillHistoryPage from "./pages/BillHistoryPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import FirstTimeSetupPage from "./pages/FirstTimeSetupPage";
+import ForcePasswordChangePage from "./pages/ForcePasswordChangePage";
 
 function App() {
   return (
@@ -28,6 +30,11 @@ function App() {
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/first-time" element={<FirstTimeSetupPage />} />
+            <Route
+              path="/force-password"
+              element={<ForcePasswordChangePage />}
+            />
             <Route
               path="/register"
               element={
