@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * Entry point for the BizApp Spring Boot application.
- * Bootstraps the application context and auto-configured beans.
+ * Bootstraps the application context and autoconfigured beans.
  */
 @SpringBootApplication
 public class BizAppApplication {

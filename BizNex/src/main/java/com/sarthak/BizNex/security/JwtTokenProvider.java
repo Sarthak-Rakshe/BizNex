@@ -7,13 +7,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
 public class JwtTokenProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtTokenProvider.class);
 
     private SecretKey secretKey;
 
@@ -29,7 +34,28 @@ public class JwtTokenProvider {
 
     @PostConstruct
     public void init()  {
-        this.secretKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secret));
+        if (secret == null) {
+            throw new IllegalStateException("JWT secret is not configured (app.security.jwt.secret)");
+        }
+        String trimmed = secret.trim();
+        // Remove surrounding quotes if someone exported with quotes
+        if ((trimmed.startsWith("\"") && trimmed.endsWith("\"")) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+            trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
+        }
+        // Try Base64 decode first
+        byte[] keyBytes;
+        try {
+            keyBytes = Base64.getDecoder().decode(trimmed);
+            log.info("Initialized JWT secret key from Base64 encoded value ({} bytes)", keyBytes.length);
+        } catch (IllegalArgumentException ex) {
+            // Fallback: treat as raw secret string
+            log.warn("JWT secret is not valid Base64. Falling back to raw string bytes. Consider supplying a Base64 encoded value. Cause: {}", ex.getMessage());
+            keyBytes = trimmed.getBytes(StandardCharsets.UTF_8);
+        }
+        if (keyBytes.length < 32) { // HS256 requires at least 256 bits (32 bytes)
+            throw new IllegalStateException("JWT secret key too short. Provide at least 32 bytes (256 bits) either as raw string or Base64 encoded");
+        }
+        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
 

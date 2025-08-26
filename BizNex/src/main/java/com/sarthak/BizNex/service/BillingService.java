@@ -14,8 +14,7 @@ import com.sarthak.BizNex.mapper.BillResponseMapper;
 import com.sarthak.BizNex.repository.BillRepository;
 import com.sarthak.BizNex.repository.CustomerRepository;
 import com.sarthak.BizNex.repository.ProductRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -322,10 +321,20 @@ public class BillingService {
         return true;
     }
 
-    /** Paged list of all bills. */
+    /** Paged list of all bills (hydrated without N+1). */
     public Page<BillResponseDto> getAllBills(Pageable pageable) {
-        Page<Bill> page = billRepository.findAll(pageable);
-        return page.map(billResponseMapper::toResponseDto);
+        Page<Bill> basePage = billRepository.findAll(pageable); // this page does NOT fetch collections
+        if(basePage.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        List<Long> ids = basePage.stream().map(Bill::getBillId).toList();
+        List<Bill> hydrated = billRepository.findByBillIdIn(ids); // entity graph fetch
+        // Index by id for quick lookup
+        Map<Long,Bill> byId = hydrated.stream().collect(Collectors.toMap(Bill::getBillId, b -> b));
+        List<BillResponseDto> orderedDtos = basePage.stream()
+                .map(b -> billResponseMapper.toResponseDto(byId.get(b.getBillId())))
+                .toList();
+        return new PageImpl<>(orderedDtos, pageable, basePage.getTotalElements());
     }
 
     /** Non-paged list of all bills (legacy). */
@@ -342,12 +351,21 @@ public class BillingService {
         return billResponseMapper.toResponseDtoList(bills);
     }
 
-    /** Bills by customer (paged). */
+    /** Bills by customer (paged) hydrated. */
     public Page<BillResponseDto> getBillsByCustomerContact(String contact, Pageable pageable) {
         Customer customer = customerRepository.findByCustomerContact(contact)
                 .orElseThrow(() -> new EntityNotFoundException("Customer not found"));
-        Page<Bill> page = billRepository.findByCustomer(customer, pageable);
-        return page.map(billResponseMapper::toResponseDto);
+        Page<Bill> basePage = billRepository.findByCustomer(customer, pageable);
+        if(basePage.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        List<Long> ids = basePage.stream().map(Bill::getBillId).toList();
+        List<Bill> hydrated = billRepository.findByBillIdIn(ids);
+        Map<Long,Bill> byId = hydrated.stream().collect(Collectors.toMap(Bill::getBillId, b -> b));
+        List<BillResponseDto> orderedDtos = basePage.stream()
+                .map(b -> billResponseMapper.toResponseDto(byId.get(b.getBillId())))
+                .toList();
+        return new PageImpl<>(orderedDtos, pageable, basePage.getTotalElements());
     }
 
     /** Create a credit payment bill reducing existing customer credits. */
@@ -389,13 +407,23 @@ public class BillingService {
         return true;
     }
 
+    /** Search bills (paged) hydrated. */
     public Page<BillResponseDto> searchBills(String rawQuery, Pageable pageable){
         String q = rawQuery == null ? "" : rawQuery.trim();
         if(q.isEmpty()){
             return getAllBills(pageable);
         }
-        Page<Bill> page = billRepository.searchBills(q, pageable);
-        return page.map(billResponseMapper::toResponseDto);
+        Page<Bill> basePage = billRepository.searchBills(q, pageable);
+        if(basePage.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        List<Long> ids = basePage.stream().map(Bill::getBillId).toList();
+        List<Bill> hydrated = billRepository.findByBillIdIn(ids);
+        Map<Long,Bill> byId = hydrated.stream().collect(Collectors.toMap(Bill::getBillId, b -> b));
+        List<BillResponseDto> orderedDtos = basePage.stream()
+                .map(b -> billResponseMapper.toResponseDto(byId.get(b.getBillId())))
+                .toList();
+        return new PageImpl<>(orderedDtos, pageable, basePage.getTotalElements());
     }
 
 }
