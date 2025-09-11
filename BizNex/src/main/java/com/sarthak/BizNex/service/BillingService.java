@@ -128,11 +128,8 @@ public class BillingService {
         if (billDto.getBillItems() == null || billDto.getBillItems().isEmpty()) {
             throw new InvalidBillReturnException("Bill items for return cannot be null or empty");
         }
-        String requestedType = billDto.getBillType();
-        if (requestedType == null || requestedType.isBlank()) {
-            throw new InvalidBillReturnException("billType must be provided as 'full-return' or 'partial-return' " +
-                    "current provided: " + requestedType);
-        }
+        // Frontend no longer sends return type; backend infers full vs partial return
+        // Ignore billDto.billType if provided
 
         Bill originalBill = billRepository.findByBillNumberIgnoreCase(billDto.getBillNumber())
                 .orElseThrow(() -> new EntityNotFoundException("Bill not found"));
@@ -197,18 +194,8 @@ public class BillingService {
         // Determine if this specific request constitutes a full-return of remaining OR entire original order
         boolean isFullReturnOfOriginal = isFullReturnOriginal(originalQty, alreadyReturnedQty, billDto.getBillItems());
 
-        String processedType;
-        if (requestedType.equalsIgnoreCase("full-return")) {
-            // Only allowed if EVERYTHING (original) is being returned with this request considering previous partials
-            if (!isFullReturnOfOriginal) {
-                throw new InvalidBillReturnException("Requested full-return but cumulative returns won't cover entire original bill");
-            }
-            processedType = "full-return";
-        } else if (requestedType.equalsIgnoreCase("partial-return")) {
-            processedType = isFullReturnOfOriginal ? "full-return" : "partial-return"; // auto-upgrade if completes the full return
-        } else {
-            throw new InvalidBillReturnException("Unsupported billType: " + requestedType);
-        }
+        // Backend inferred processed type
+        String processedType = isFullReturnOfOriginal ? "full-return" : "partial-return";
 
         // Update stock for returned quantities
         for (BillItemDto itemDto : billDto.getBillItems()) {
@@ -218,13 +205,13 @@ public class BillingService {
             productRepository.save(product);
         }
 
-        // If this call results in a complete full return (whether requested or auto-upgraded), mark original bill accordingly
+        // If this call results in a complete full return mark original bill accordingly
         if (processedType.equals("full-return")) {
             originalBill.setBillStatus("cancelled");
             originalBill.setBillType("full-return");
             billRepository.save(originalBill);
         } else {
-            // Keep original bill type/status intact for partial returns
+            // Keep or set original bill type/status for partial returns
             if (!originalBill.getBillType().equalsIgnoreCase("partial-return")) {
                 originalBill.setBillType("partial-return");
                 originalBill.setBillStatus("returned");
@@ -337,19 +324,6 @@ public class BillingService {
         return new PageImpl<>(orderedDtos, pageable, basePage.getTotalElements());
     }
 
-    /** Non-paged list of all bills (legacy). */
-    public List<BillResponseDto> getAllBills() {
-        List<Bill> bills = billRepository.findAll();
-        return billResponseMapper.toResponseDtoList(bills);
-    }
-
-    /** Bills by customer (non-paged). */
-    public List<BillResponseDto> getBillsByCustomerContact(String contact) {
-        Customer customer = customerRepository.findByCustomerContact(contact)
-                .orElseThrow(() -> new EntityNotFoundException("Customer not found"));
-        List<Bill> bills = billRepository.findByCustomer(customer);
-        return billResponseMapper.toResponseDtoList(bills);
-    }
 
     /** Bills by customer (paged) hydrated. */
     public Page<BillResponseDto> getBillsByCustomerContact(String contact, Pageable pageable) {
@@ -398,13 +372,14 @@ public class BillingService {
     }
 
 
-    /** Delete bill by id returning boolean (true if deleted). */
+    /**
+     * Delete bill by id returning boolean (true if deleted).
+     */
     @Transactional
-    public boolean deleteBillById(Long billId) {
+    public void deleteBillById(Long billId) {
         Bill bill = billRepository.findById(billId)
                 .orElseThrow(() -> new EntityNotFoundException("Bill not found with ID: " + billId));
         billRepository.delete(bill);
-        return true;
     }
 
     /** Search bills (paged) hydrated. */

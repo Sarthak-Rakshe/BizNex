@@ -46,7 +46,7 @@ const Navbar = () => {
                 to="/dashboard"
                 className="text-2xl font-bold text-primary-600"
               >
-                BizApp
+                BizNex
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">

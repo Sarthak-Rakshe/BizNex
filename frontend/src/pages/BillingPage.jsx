@@ -35,6 +35,9 @@ const BillingPage = () => {
   const [originalBillNumber, setOriginalBillNumber] = useState("");
   const [showBillModal, setShowBillModal] = useState(false);
   const [createdBill, setCreatedBill] = useState(null);
+  // One-time tip for returns
+  const [showReturnTip, setShowReturnTip] = useState(false);
+  const [neverShowReturnTip, setNeverShowReturnTip] = useState(false);
   const { toasts, showSuccess, showError, removeToast } = useToast();
 
   // Add Customer form state
@@ -76,6 +79,19 @@ const BillingPage = () => {
       clearTimeout(t);
     };
   }, [searchProduct]);
+
+  // When switching to return flow, show a one-time tip unless hidden
+  useEffect(() => {
+    if (billType === "return") {
+      try {
+        const hidden = localStorage.getItem("bnx_hideReturnTip") === "true";
+        if (!hidden) setShowReturnTip(true);
+      } catch (_) {
+        // localStorage might fail in some environments; ignore
+        setShowReturnTip(true);
+      }
+    }
+  }, [billType]);
 
   const fetchCustomers = async () => {
     try {
@@ -179,22 +195,19 @@ const BillingPage = () => {
 
     try {
       // Normalize and prepare payload to match backend DTOs
-      const allowedBillTypes = [
-        "new",
-        "creditsPayment",
-        "partial-return",
-        "full-return",
-      ];
+      const allowedBillTypes = ["new", "creditsPayment", "return"];
+      const isReturn = billType === "return";
       let finalBillType = allowedBillTypes.includes(billType)
         ? billType
         : "new";
+      // Per new requirement: send billType as 'new' for returns; backend will interpret appropriately
+      if (isReturn) finalBillType = "new";
       if (paymentMethod === "credit") finalBillType = "creditsPayment";
 
       // derive bill status automatically
       let finalBillStatus = "complete";
       if (finalBillType === "new") finalBillStatus = "complete";
-      if (finalBillType === "partial-return" || finalBillType === "full-return")
-        finalBillStatus = "returned";
+      if (isReturn) finalBillStatus = "returned";
       // fallback to complete for any unexpected value
 
       const billItemsDto = billItems.map((item) => ({
@@ -214,10 +227,7 @@ const BillingPage = () => {
       };
 
       let response;
-      if (
-        finalBillType === "partial-return" ||
-        finalBillType === "full-return"
-      ) {
+      if (isReturn) {
         // For returns, send billDto with billNumber, items and type/status
         const returnDto = {
           billNumber: originalBillNumber,
@@ -428,50 +438,23 @@ const BillingPage = () => {
                     New
                   </button>
 
-                  {/* <button
-                    type="button"
-                    onClick={() => setBillType("creditsPayment")}
-                    aria-pressed={billType === "creditsPayment"}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300 ${
-                      billType === "creditsPayment"
-                        ? "bg-primary-600 text-white"
-                        : "bg-white border border-gray-200 text-gray-700"
-                    }`}
-                  >
-                    Credits Payment
-                  </button> */}
-
                   <button
                     type="button"
-                    onClick={() => setBillType("partial-return")}
-                    aria-pressed={billType === "partial-return"}
+                    onClick={() => setBillType("return")}
+                    aria-pressed={billType === "return"}
                     className={`px-3 py-1 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300 ${
-                      billType === "partial-return"
+                      billType === "return"
                         ? "bg-primary-600 text-white"
                         : "bg-white border border-gray-200 text-gray-700"
                     }`}
                   >
-                    Partial Return
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setBillType("full-return")}
-                    aria-pressed={billType === "full-return"}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300 ${
-                      billType === "full-return"
-                        ? "bg-primary-600 text-white"
-                        : "bg-white border border-gray-200 text-gray-700"
-                    }`}
-                  >
-                    Full Return
+                    Return
                   </button>
                 </div>
               </div>
 
               {/* Bill status is computed automatically from bill type/payment method */}
-              {(billType === "partial-return" ||
-                billType === "full-return") && (
+              {billType === "return" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Original Bill Number
@@ -561,9 +544,7 @@ const BillingPage = () => {
                 ) : (
                   <Receipt className="w-5 h-5 mr-2" />
                 )}
-                {billType === "partial-return" || billType === "full-return"
-                  ? "Process Return"
-                  : "Create Bill"}
+                {billType === "return" ? "Process Return" : "Create Bill"}
               </button>
             </div>
           </div>
@@ -956,6 +937,49 @@ const BillingPage = () => {
           onClose={() => removeToast(toast.id)}
         />
       ))}
+      {/* Return Tip Modal */}
+      <Modal
+        isOpen={showReturnTip}
+        onClose={() => setShowReturnTip(false)}
+        title="Return Tip"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700">
+            Only keep those items that you want to return.
+          </p>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              className="rounded border-gray-300"
+              checked={neverShowReturnTip}
+              onChange={(e) => setNeverShowReturnTip(e.target.checked)}
+            />
+            Never show again
+          </label>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              className="btn-secondary"
+              onClick={() => setShowReturnTip(false)}
+            >
+              Close
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                if (neverShowReturnTip) {
+                  try {
+                    localStorage.setItem("bnx_hideReturnTip", "true");
+                  } catch (_) {}
+                }
+                setShowReturnTip(false);
+              }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </Modal>
       {/* Created / Returned Bill Modal */}
       <Modal
         isOpen={showBillModal}
