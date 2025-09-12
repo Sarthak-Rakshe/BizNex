@@ -1,9 +1,17 @@
 // OpenAPI generated client wrappers
 import { BizAppApi } from "../apiClient";
 
+// Determine API base URL for different environments
+const API_BASE =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
+  // Optional runtime override (inject on window before app loads if needed)
+  (typeof window !== "undefined" && window.__BIZNEX_API_BASE__) ||
+  // Fallback to same-origin (works when backend served under same domain)
+  (typeof window !== "undefined" ? window.location.origin : "");
+
 // Create a single API client instance with dynamic JWT token resolution
 const apiClient = new BizAppApi({
-  BASE: "http://localhost:8081",
+  BASE: String(API_BASE || ""),
   TOKEN: async () => localStorage.getItem("authToken") || "",
 });
 

@@ -15,6 +15,9 @@ public interface BillItemMapper {
     @Mapping(target = "billItemProduct", source = "billItemProduct")
     BillItemDto toDto(BillItem billItem);
 
+    // Ignore generated id and parent back-reference when creating entity from DTO
+    @Mapping(target = "billItemId", ignore = true)
+    @Mapping(target = "bill", ignore = true)
     BillItem toEntity(BillItemDto billItemDto);
 
     @Mapping(target = "billItemProduct", source = "billItemProduct")

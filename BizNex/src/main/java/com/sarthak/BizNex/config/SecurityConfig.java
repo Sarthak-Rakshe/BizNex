@@ -5,6 +5,7 @@ import com.sarthak.BizNex.security.RestAccessDeniedHandler;
 import com.sarthak.BizNex.security.RestAuthEntryPoint;
 import com.sarthak.BizNex.security.ForcePasswordChangeFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,8 +21,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Central Spring Security configuration: stateless JWT auth, endpoint authorization rules,
@@ -33,10 +38,26 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RestAuthEntryPoint restAuthEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
     private final ForcePasswordChangeFilter forcePasswordChangeFilter;
+
+    // CORS properties (comma separated in application.properties / env overrides)
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    private String corsAllowedOrigins;
+    @Value("${app.cors.allowed-methods:GET,POST,PUT,DELETE,PATCH,OPTIONS}")
+    private String corsAllowedMethods;
+    @Value("${app.cors.allowed-headers:Authorization,Content-Type}")
+    private String corsAllowedHeaders;
+    @Value("${app.cors.exposed-headers:Authorization}")
+    private String corsExposedHeaders;
+    @Value("${app.cors.allow-credentials:true}")
+    private boolean corsAllowCredentials;
+    @Value("${app.cors.max-age:3600}")
+    private long corsMaxAge;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -75,14 +96,34 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 
+    private List<String> csvToList(String csv) {
+        return Arrays.stream(csv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+    }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization","Content-Type"));
-        cfg.setExposedHeaders(List.of("Authorization"));
-        cfg.setAllowCredentials(true);
+        List<String> origins = csvToList(corsAllowedOrigins);
+        boolean wildcard = origins.stream().anyMatch(o -> o.contains("*"));
+        if (wildcard) {
+            // If wildcard present and credentials requested, disable credentials per CORS spec
+            if (corsAllowCredentials) {
+                log.warn("Wildcard origin used with credentials=true; forcing allowCredentials=false to satisfy CORS spec.");
+            }
+            cfg.setAllowCredentials(false); // will be false if wildcard
+            cfg.setAllowedOriginPatterns(origins);
+        } else {
+            cfg.setAllowedOrigins(origins);
+            cfg.setAllowCredentials(corsAllowCredentials);
+        }
+        cfg.setAllowedMethods(csvToList(corsAllowedMethods));
+        cfg.setAllowedHeaders(csvToList(corsAllowedHeaders));
+        cfg.setExposedHeaders(csvToList(corsExposedHeaders));
+        cfg.setMaxAge(corsMaxAge);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cfg);
         return source;

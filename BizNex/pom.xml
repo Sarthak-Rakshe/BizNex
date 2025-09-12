@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.sarthak</groupId>
     <artifactId>BizNex</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
     <name>BizApp</name>
     <description>Demo project for business application</description>
     <url/>
@@ -30,6 +30,8 @@
         <java.version>17</java.version>
         <!-- Centralize springdoc version for easier upgrades -->
         <springdoc.version>2.7.0</springdoc.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <checkstyle.version>10.17.0</checkstyle.version>
     </properties>
     <dependencies>
         <dependency>
@@ -74,9 +76,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.33</version>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>9.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -133,6 +135,7 @@
     </dependencies>
 
     <build>
+        <finalName>BizNex</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -163,7 +166,6 @@
                     </excludes>
                 </configuration>
             </plugin>
-            <!-- Removed springdoc-openapi-maven-plugin: manual generation via curl now -->
         </plugins>
     </build>
 

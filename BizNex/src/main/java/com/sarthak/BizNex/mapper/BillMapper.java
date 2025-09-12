@@ -13,21 +13,23 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {CustomerMapper.class, BillItemMapper.class})
 public interface BillMapper {
     BillMapper INSTANCE = Mappers.getMapper(BillMapper.class);
 
     @Mapping(target = "customer", source = "customer")
-    @Mapping(target = "billDate", source = "billDate", qualifiedByName = "formatDate")
+    @Mapping(target = "billDate", source = "billDate", qualifiedByName = "formatBillDate")
     BillDto toDto(Bill bill);
 
-    @Named("formatDate")
-    static String formatDate(LocalDateTime date) {
+    @Named("formatBillDate")
+    static String formatBillDate(LocalDateTime date) {
         if (date == null) return null;
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy");
         return date.format(formatter);
     }
 
+    // Ignore generated id and server-managed date
+    @Mapping(target = "billId", ignore = true)
     @Mapping(target = "billDate", ignore = true)
     Bill toEntity(BillDto billDto);
 
