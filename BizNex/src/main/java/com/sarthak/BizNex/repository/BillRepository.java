@@ -34,8 +34,8 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
             "LOWER(b.billNumber) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
             "LOWER(c.customerName) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
             "LOWER(c.customerContact) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
-            "LOWER(b.billType) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
-            "LOWER(b.paymentMethod) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+            "LOWER(CAST(b.billType as string)) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+            "LOWER(CAST(b.paymentMethod as string)) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
             "LOWER(b.originalBillNumber) LIKE LOWER(CONCAT('%', :q, '%'))")
     Page<Bill> searchBills(@Param("q") String query, Pageable pageable);
 

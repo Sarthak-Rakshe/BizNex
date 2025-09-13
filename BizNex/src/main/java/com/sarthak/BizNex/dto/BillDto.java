@@ -1,5 +1,6 @@
 package com.sarthak.BizNex.dto;
 
+import com.sarthak.BizNex.entity.Bill;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,13 +16,13 @@ public class BillDto {
     private String billNumber;
     private CustomerDto customer;
     @Builder.Default
-    private String billType = "new";
+    private Bill.BillType billType = Bill.BillType.NEW;
     private List<BillItemDto> billItems;
-    private String paymentMethod;
+    private Bill.PaymentMethod paymentMethod;
     private String billDate;
     private double billTotalAmount;
     private double billTotalDiscount;
-    private String billStatus;
+    private Bill.BillStatus billStatus;
     @Builder.Default
     private String originalBillNumber = "NA";
 

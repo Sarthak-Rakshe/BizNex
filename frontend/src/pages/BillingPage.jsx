@@ -5,6 +5,7 @@ import LoadingSpinner from "../components/UI/LoadingSpinner";
 import Toast from "../components/UI/Toast";
 import { useToast } from "../hooks/useToast";
 import { billingAPI, customerAPI, productAPI } from "../utils/api";
+import { toEnum } from "../utils/enumUtils";
 import {
   Plus,
   Search,
@@ -202,7 +203,7 @@ const BillingPage = () => {
         : "new";
       // Per new requirement: send billType as 'new' for returns; backend will interpret appropriately
       if (isReturn) finalBillType = "new";
-      if (paymentMethod === "credit") finalBillType = "creditsPayment";
+      if (paymentMethod === "credit") finalBillType = "credits_Payment";
 
       // derive bill status automatically
       let finalBillStatus = "complete";
@@ -220,9 +221,9 @@ const BillingPage = () => {
       const billData = {
         customer: { customerId: selectedCustomer.customerId },
         billItems: billItemsDto,
-        billType: finalBillType,
-        billStatus: finalBillStatus,
-        paymentMethod: paymentMethod,
+        billType: toEnum(finalBillType),
+        billStatus: toEnum(finalBillStatus),
+        paymentMethod: toEnum(paymentMethod),
         billTotalAmount: calculateTotal(),
       };
 
@@ -232,9 +233,9 @@ const BillingPage = () => {
         const returnDto = {
           billNumber: originalBillNumber,
           billItems: billItemsDto,
-          paymentMethod: paymentMethod,
-          billType: finalBillType,
-          billStatus: finalBillStatus,
+          paymentMethod: toEnum(paymentMethod),
+          billType: toEnum(finalBillType),
+          billStatus: toEnum(finalBillStatus),
         };
         response = await billingAPI.returnBill(returnDto);
         showSuccess(

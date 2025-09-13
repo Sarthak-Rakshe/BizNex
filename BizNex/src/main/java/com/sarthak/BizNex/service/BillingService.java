@@ -92,14 +92,14 @@ public class BillingService {
         }
         Bill bill = billMapper.toEntity(billDto);
         bill.setCustomer(customer);
-        bill.setBillType("new");
+        bill.setBillType(Bill.BillType.NEW);
         bill.setBillItems(billItems);
         for (BillItem item : billItems) {
             item.setBill(bill);
         }
         Bill savedBill = billRepository.save(bill);
         // Update customer credit after bill is saved and total is calculated
-        if (billDto.getPaymentMethod() != null && billDto.getPaymentMethod().equalsIgnoreCase("credit")) {
+        if (billDto.getPaymentMethod() != null && billDto.getPaymentMethod() == Bill.PaymentMethod.CREDIT) {
             double currentCredit = customer.getCustomerCredits();
             customer.setCustomerCredits(currentCredit + savedBill.getBillTotalAmount());
             customerRepository.save(customer);
@@ -134,7 +134,7 @@ public class BillingService {
         Bill originalBill = billRepository.findByBillNumberIgnoreCase(billDto.getBillNumber())
                 .orElseThrow(() -> new EntityNotFoundException("Bill not found"));
 
-        if (originalBill.getBillType().equalsIgnoreCase("full-return")) {
+        if (originalBill.getBillType() == Bill.BillType.FULL_RETURN) {
             throw new InvalidBillReturnException("This bill has already been fully returned");
         }
 
@@ -195,7 +195,7 @@ public class BillingService {
         boolean isFullReturnOfOriginal = isFullReturnOriginal(originalQty, alreadyReturnedQty, billDto.getBillItems());
 
         // Backend inferred processed type
-        String processedType = isFullReturnOfOriginal ? "full-return" : "partial-return";
+        Bill.BillType processedType = isFullReturnOfOriginal ? Bill.BillType.FULL_RETURN : Bill.BillType.PARTIAL_RETURN;
 
         // Update stock for returned quantities
         for (BillItemDto itemDto : billDto.getBillItems()) {
@@ -206,15 +206,15 @@ public class BillingService {
         }
 
         // If this call results in a complete full return mark original bill accordingly
-        if (processedType.equals("full-return")) {
-            originalBill.setBillStatus("cancelled");
-            originalBill.setBillType("full-return");
+        if (processedType == Bill.BillType.FULL_RETURN) {
+            originalBill.setBillStatus(Bill.BillStatus.CANCELLED);
+            originalBill.setBillType(Bill.BillType.FULL_RETURN);
             billRepository.save(originalBill);
         } else {
             // Keep or set original bill type/status for partial returns
-            if (!originalBill.getBillType().equalsIgnoreCase("partial-return")) {
-                originalBill.setBillType("partial-return");
-                originalBill.setBillStatus("returned");
+            if (originalBill.getBillType() != Bill.BillType.PARTIAL_RETURN) {
+                originalBill.setBillType(Bill.BillType.PARTIAL_RETURN);
+                originalBill.setBillStatus(Bill.BillStatus.RETURNED);
                 billRepository.save(originalBill);
             }
         }
@@ -238,12 +238,12 @@ public class BillingService {
         returnBill.setBillItems(returnItemsEntities);
         returnBill.setCustomer(originalBill.getCustomer());
         returnBill.setBillType(processedType);
-        returnBill.setBillStatus("complete");
+        returnBill.setBillStatus(Bill.BillStatus.COMPLETE);
         returnBill.setPaymentMethod(billDto.getPaymentMethod());
         returnBill.setOriginalBillNumber(originalBill.getBillNumber());
         Bill savedReturnBill = billRepository.save(returnBill);
 
-        if (originalBill.getPaymentMethod().equalsIgnoreCase("credit")) {
+        if (originalBill.getPaymentMethod() == Bill.PaymentMethod.CREDIT) {
             Customer updated = adjustCustomerCreditsForReturn(originalBill, savedReturnBill, processedType);
             customerRepository.save(updated);
         }
@@ -251,16 +251,16 @@ public class BillingService {
         return billResponseMapper.toResponseDto(savedReturnBill);
     }
 
-    private Customer adjustCustomerCreditsForReturn(Bill originalBill, Bill savedReturnBill, String processedType) {
+    private Customer adjustCustomerCreditsForReturn(Bill originalBill, Bill savedReturnBill, Bill.BillType processedType) {
         double amountToSubtract;
         Customer customer = originalBill.getCustomer();
 
-        if (processedType.equalsIgnoreCase("full-return")) {
+        if (processedType == Bill.BillType.FULL_RETURN) {
             // Calculate total credits already subtracted for previous partial returns
             double alreadyReturnedCredits = 0.0;
             List<Bill> priorReturnBills = billRepository.findByOriginalBillNumberIgnoreCase(originalBill.getBillNumber());
             for (Bill rBill : priorReturnBills) {
-                if (!rBill.getBillType().equalsIgnoreCase("full-return")) {
+                if (rBill.getBillType() != Bill.BillType.FULL_RETURN) {
                     alreadyReturnedCredits += rBill.getBillTotalAmount();
                 }
             }
@@ -270,12 +270,16 @@ public class BillingService {
             amountToSubtract = savedReturnBill.getBillTotalAmount();
         }
 
-        double updatedCredits = customer.getCustomerCredits() - amountToSubtract;
+        double currentCredits = customer.getCustomerCredits();
+        double updatedCredits = currentCredits - amountToSubtract;
 
+        // If credits would go negative (customer already settled credits), zero them out and allow return.
+        // The excess is treated as a refund outside the credits ledger.
         if (updatedCredits < 0) {
-            throw new InvalidBillReturnException("Customer credits cannot be negative after return");
+            customer.setCustomerCredits(0.0);
+        } else {
+            customer.setCustomerCredits(updatedCredits);
         }
-        customer.setCustomerCredits(updatedCredits);
         return customer;
     }
 
@@ -359,8 +363,8 @@ public class BillingService {
         customerRepository.save(customer);
 
         Bill newBill = new Bill();
-        newBill.setBillType("creditsPayment");
-        newBill.setBillStatus("complete");
+        newBill.setBillType(Bill.BillType.CREDITS_PAYMENT);
+        newBill.setBillStatus(Bill.BillStatus.COMPLETE);
         newBill.setCustomer(customer);
         newBill.setBillTotalAmount(billDto.getBillTotalAmount());
         newBill.setPaymentMethod(billDto.getPaymentMethod());

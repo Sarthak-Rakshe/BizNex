@@ -5,6 +5,7 @@ import com.sarthak.BizNex.dto.BillDto;
 import com.sarthak.BizNex.dto.BillItemDto;
 import com.sarthak.BizNex.dto.CustomerDto;
 import com.sarthak.BizNex.dto.ProductDto;
+import com.sarthak.BizNex.entity.Bill;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -90,8 +91,8 @@ class BillSearchIntegrationTest {
             BillDto bill = BillDto.builder()
                     .customer(CustomerDto.builder().customerId(customerId).build())
                     .billItems(List.of(item))
-                    .billStatus("complete")
-                    .paymentMethod(i % 2 ==0 ? "cash" : "online")
+                    .billStatus(Bill.BillStatus.COMPLETE)
+                    .paymentMethod(i % 2 ==0 ? Bill.PaymentMethod.CASH : Bill.PaymentMethod.ONLINE)
                     .build();
             mockMvc.perform(post("/api/v1/billing")
                             .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("b").roles("ADMIN"))

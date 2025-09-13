@@ -1,5 +1,6 @@
 package com.sarthak.BizNex.dto.response;
 
+import com.sarthak.BizNex.entity.Bill;
 import lombok.Data;
 
 import java.util.List;
@@ -13,12 +14,12 @@ public class BillResponseDto {
     private String customerName;
     private String customerEmail;
     private String customerPhone;
-    private String billType; // e.g., "New", "Return", "Credit"
+    private Bill.BillType billType; // enum
     private List<BillItemResponseDto> billItems; // JSON or string representation of bill items
-    private String paymentMethod; // e.g., "Cash", "Credit Card", "Debit Card", "Online"
+    private Bill.PaymentMethod paymentMethod; // enum
     private double totalAmount;
     private double totalDiscount;
-    private String billStatus; // e.g., "Paid", "Pending", "Refunded"
+    private Bill.BillStatus billStatus; // enum
     private String originalBillNumber; // For returns or credits, the original bill
 
 

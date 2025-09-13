@@ -7,6 +7,7 @@ import { useToast } from "../hooks/useToast";
 import { customerAPI, billingAPI } from "../utils/api";
 import Pagination from "../components/UI/Pagination";
 import { CreditCard, User, DollarSign, Receipt } from "lucide-react";
+import { toEnum } from "../utils/enumUtils";
 
 const CreditsPage = () => {
   const [customersWithCredits, setCustomersWithCredits] = useState([]);
@@ -104,9 +105,10 @@ const CreditsPage = () => {
       const billData = {
         customer: selectedCustomer,
         billTotalAmount: paymentAmount,
-        paymentMethod: paymentMethod,
-        billType: "creditsPayment",
-        billStatus: "paid",
+        paymentMethod: toEnum(paymentMethod),
+        billType: toEnum("creditsPayment"),
+        // Backend enum accepts: CANCELLED, RETURNED, COMPLETE
+        billStatus: toEnum("complete"),
       };
 
       const response = await billingAPI.creditBill(billData);

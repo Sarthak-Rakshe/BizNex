@@ -114,9 +114,9 @@ public class CustomerService {
                     // Create a creditsPayment bill representing the payment
                     Bill paymentBill = new Bill();
                     paymentBill.setCustomer(existingCustomer);
-                    paymentBill.setBillType("creditsPayment");
-                    paymentBill.setBillStatus("complete");
-                    paymentBill.setPaymentMethod("cash"); // default; could be extended to accept via DTO
+                    paymentBill.setBillType(Bill.BillType.CREDITS_PAYMENT);
+                    paymentBill.setBillStatus(Bill.BillStatus.COMPLETE);
+                    paymentBill.setPaymentMethod(Bill.PaymentMethod.CASH); // default; could be extended to accept via DTO
                     paymentBill.setBillTotalAmount(paymentAmount);
                     billRepository.save(paymentBill);
                     log.info("Created creditsPayment bill (amount={}) for customer contact={} due to credit reduction {} -> {}", paymentAmount, existingCustomer.getCustomerContact(), oldCredits, requestedCredits);

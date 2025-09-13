@@ -30,15 +30,18 @@ public class Bill {
     private Customer customer; // Customer associated with the bill
 
     @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String billType ;
+    private BillType billType;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String billStatus; // Status of the bill (e.g., "paid", "unpaid", "cancelled")
+    private BillStatus billStatus; // Status of the bill (e.g., COMPLETE, CANCELLED, RETURNED)
 
     @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String paymentMethod; // Method of payment (e.g., "cash", "credit card", "online")
+    private PaymentMethod paymentMethod; // Method of payment
 
     private double billTotalAmount=0; // Total amount of the bill
 
@@ -75,8 +78,8 @@ public class Bill {
         if (this.originalBillNumber == null || this.originalBillNumber.isBlank()) {
             this.originalBillNumber = "NA";
         }
-        if (this.billType == null || this.billType.isBlank()) {
-            this.billType = "new"; // default for freshly created sales bill
+        if (this.billType == null) {
+            this.billType = BillType.NEW; // default for freshly created sales bill
         }
 
         // Calculate the total amount of the bill
@@ -103,15 +106,12 @@ public class Bill {
         if (customer == null) {
             throw new BillInformationInvalidException("Bill must be associated with a customer.");
         }
-        // Validate bill status
-        if (!billStatus.matches("complete|cancelled|returned")) {
-            throw new BillInformationInvalidException("Invalid bill status. Allowed values are: complete, cancelled, returned.");
+        // Validate bill status & payment method
+        if (billStatus == null) {
+            throw new BillInformationInvalidException("Bill status must not be null.");
         }
-        if (!billType.matches("creditsPayment|new|partial-return|full-return")) {
-            throw new BillInformationInvalidException("Invalid bill type. Allowed values are: creditsPayment, new, partial-return, full-return.");
-        }
-        if(!paymentMethod.matches("cash|online|credit|card")){
-            throw new BillInformationInvalidException("Invalid payment method. Allowed values are: cash, online, credit, card.");
+        if (paymentMethod == null) {
+            throw new BillInformationInvalidException("Payment method must not be null.");
         }
     }
 
@@ -140,17 +140,14 @@ public class Bill {
         }
 
         // Validate bill status
-        if (billStatus == null || billStatus.isBlank()) {
-            throw new BillInformationInvalidException("Bill status must not be null or empty.");
+        if (billStatus == null) {
+            throw new BillInformationInvalidException("Bill status must not be null.");
         }
-        if (!billStatus.matches("complete|cancelled|returned")) {
-            throw new BillInformationInvalidException("Invalid bill status. Allowed values are: complete, cancelled, credit, returned.");
+        if (billType == null) {
+            throw new BillInformationInvalidException("Bill type must not be null.");
         }
-        if (!billType.matches("new|creditsPayment|partial-return|full-return")) {
-            throw new BillInformationInvalidException("Invalid bill type. Allowed values are: new, creditsPayment, partial-return, full-return.");
-        }
-        if(!paymentMethod.matches("cash|online|credit|card")){
-            throw new BillInformationInvalidException("Invalid payment method. Allowed values are: cash, online, credit, card.");
+        if (paymentMethod == null) {
+            throw new BillInformationInvalidException("Payment method must not be null.");
         }
     }
 
@@ -169,5 +166,25 @@ public class Bill {
                 ", billDate=" + billDate +
                 ", originalBillNumber='" + originalBillNumber + '\'' +
                 '}';
+    }
+
+    public enum BillType {
+        NEW,
+        CREDITS_PAYMENT,
+        PARTIAL_RETURN,
+        FULL_RETURN
+    }
+
+    public enum BillStatus {
+        COMPLETE,
+        CANCELLED,
+        RETURNED
+    }
+
+    public enum PaymentMethod {
+        CASH,
+        ONLINE,
+        CREDIT,
+        CARD
     }
 }

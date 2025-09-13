@@ -2,16 +2,17 @@
 import { BizAppApi } from "../apiClient";
 
 // Determine API base URL for different environments
-const API_BASE =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
-  // Optional runtime override (inject on window before app loads if needed)
-  (typeof window !== "undefined" && window.__BIZNEX_API_BASE__) ||
+const API_URL =
+  // Runtime override (injected by Docker/Nginx via config.js)
+  (typeof window !== "undefined" && window._env_?.VITE_API_URL) ||
+  // Build-time value baked by Vite
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) ||
   // Fallback to same-origin (works when backend served under same domain)
   (typeof window !== "undefined" ? window.location.origin : "");
 
 // Create a single API client instance with dynamic JWT token resolution
 const apiClient = new BizAppApi({
-  BASE: String(API_BASE || ""),
+  BASE: String(API_URL || ""),
   TOKEN: async () => localStorage.getItem("authToken") || "",
 });
 
