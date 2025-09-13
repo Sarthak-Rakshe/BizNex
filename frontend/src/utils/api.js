@@ -20,10 +20,18 @@ const apiClient = new BizAppApi({
 const handleError = (err) => {
   const status = err?.status || err?.response?.status;
   if (status === 401) {
+    // Clear tokens
     localStorage.removeItem("authToken");
     localStorage.removeItem("userData");
     localStorage.removeItem("refreshToken");
-    if (typeof window !== "undefined") window.location.href = "/login";
+    // Notify app to logout and navigate via React Router (no hard reload)
+    if (typeof window !== "undefined") {
+      try {
+        window.dispatchEvent(new CustomEvent("auth:logout"));
+      } catch (_) {
+        /* ignore */
+      }
+    }
   }
   const message =
     err?.body?.message ||

@@ -39,6 +39,29 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // React to global logout signals (e.g., 401s in API layer)
+  useEffect(() => {
+    const onLogout = () => {
+      logout();
+      // Soft redirect using client-side router if present
+      try {
+        if (typeof window !== "undefined") {
+          const current = window.location.pathname;
+          // Avoid loops if already on login
+          if (current !== "/login") {
+            window.history.pushState({}, "", "/login");
+            // Dispatch a popstate to notify router
+            window.dispatchEvent(new PopStateEvent("popstate"));
+          }
+        }
+      } catch (_) {
+        /* ignore */
+      }
+    };
+    window.addEventListener("auth:logout", onLogout);
+    return () => window.removeEventListener("auth:logout", onLogout);
+  }, []);
+
   const login = (userData, token) => {
     localStorage.setItem("authToken", token);
     localStorage.setItem("userData", JSON.stringify(userData));
