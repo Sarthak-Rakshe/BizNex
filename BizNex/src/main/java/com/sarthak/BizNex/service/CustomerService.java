@@ -37,11 +37,6 @@ public class CustomerService {
         this.billRepository = billRepository;
     }
 
-    /** Return all customers as a non-paged list (utility / legacy) sorted alphabetically by name. */
-    public List<CustomerDto> getAllCustomers() {
-        List<Customer> customers = customerRepository.findAll(Sort.by(Sort.Direction.ASC, "customerName"));
-        return customerMapper.toDtoList(customers);
-    }
 
     /** Paged retrieval of customers. */
     public Page<CustomerDto> getAllCustomers(Pageable pageable){
@@ -151,13 +146,6 @@ public class CustomerService {
          return customer.map(customerMapper::toDto).orElseThrow(()-> new EntityNotFoundException("Customer with contact " + contact + " not found."));
      }
 
-     /** Non-paged list of customers with credits > 0 sorted alphabetically. */
-     public List<CustomerDto> getCustomersWithCredits(){
-        return customerRepository.findByCustomerCreditsGreaterThanOrderByCustomerNameAsc(0.0)
-                .stream()
-                .map(customerMapper::toDto)
-                .toList();
-     }
 
      /** Paged list of customers with credits > 0 (default alphabetical if default sort requested). */
      public Page<CustomerDto> getCustomersWithCredits(Pageable pageable){

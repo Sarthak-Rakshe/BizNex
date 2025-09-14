@@ -92,12 +92,12 @@ public class UserServiceImp implements UserService {
     }
 
     @Override
-    public String deleteUserByUsername(String username) {
+    public void deleteUserByUsername(String username) {
         String normalized = username.toLowerCase();
         Optional<User> optional = userRepository.findByUsername(normalized);
         if(optional.isEmpty()) {
             log.info("Delete requested for non-existent user='{}' - ignoring", normalized);
-            return "User deleted successfully";
+            return;
         }
         User user = optional.get();
         if(user.getUserRole() == User.UserRole.ADMIN && userRepository.countByUserRole(User.UserRole.ADMIN) == 1) {
@@ -106,7 +106,6 @@ public class UserServiceImp implements UserService {
         }
         userRepository.delete(user);
         log.info("User deleted user='{}' role='{}'", normalized, user.getUserRole());
-        return "User deleted successfully";
     }
 
     @Override

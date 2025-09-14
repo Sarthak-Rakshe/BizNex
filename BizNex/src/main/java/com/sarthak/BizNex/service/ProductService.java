@@ -155,36 +155,6 @@ public class ProductService {
         }
     }
 
-    /** List products by category (always returns list, may be empty) sorted alphabetically by productName (case-insensitive). */
-   public List<ProductDto> getProductByCategory(String category){
-        try {
-            List<Product> list = productRepository.findByProductCategoryAndProductActiveTrue(category);
-            return productMapper.toDtoList(
-                    list.stream()
-                        .sorted(Comparator.comparing(Product::getProductName, String.CASE_INSENSITIVE_ORDER))
-                        .toList()
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("Error retrieving products for category: " + category, e);
-        }
-    }
-
-    /** Find by unique product code. */
-    public ProductDto getProductByProductCode(String productCode) {
-        Optional<Product> product = productRepository.findByProductCode(productCode);
-        return product.map(productMapper::toDto)
-                .orElseThrow(() -> new EntityNotFoundException("Product with code " + productCode + " not found."));
-    }
-
-    /** Name substring search (case-insensitive) returning alphabetically sorted results. */
-    public List<ProductDto> searchProductsByName(String productName) {
-        List<Product> products = productRepository.findByProductNameContainingIgnoreCaseAndProductActiveTrue(productName)
-                .stream()
-                .sorted(Comparator.comparing(Product::getProductName, String.CASE_INSENSITIVE_ORDER))
-                .toList();
-        return productMapper.toDtoList(products);
-    }
-
 
 
     public Page<ProductDto> getProductByCategory(String category, Pageable pageable){

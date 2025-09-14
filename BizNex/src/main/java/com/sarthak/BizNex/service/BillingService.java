@@ -283,16 +283,6 @@ public class BillingService {
         return customer;
     }
 
-    private boolean isExactMatch(Map<Long, Integer> remainingQty, List<BillItemDto> returnItems) {
-        if (remainingQty.size() != returnItems.size()) return false;
-        for (BillItemDto dto : returnItems) {
-            Long pid = dto.getBillItemProduct() != null ? dto.getBillItemProduct().getProductId() : null;
-            if (pid == null) return false;
-            Integer rem = remainingQty.get(pid);
-            if (rem == null || rem != dto.getBillItemQuantity()) return false;
-        }
-        return true;
-    }
 
     private boolean isFullReturnOriginal(Map<Long, Integer> originalQty, Map<Long, Integer> alreadyReturnedQty, List<BillItemDto> newReturnItems) {
         // Combine already returned with this request
