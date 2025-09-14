@@ -85,4 +85,88 @@ class ProductControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.productQuantity", is(0)));
     }
+
+    @Test
+    @WithMockUser(roles = {"ADMIN"})
+    @DisplayName("POST reactivates soft-deleted product with same name/category and preserves code and id")
+    void postReactivatesSoftDeletedProduct() throws Exception {
+        billItemRepository.deleteAll();
+        billRepository.deleteAll();
+        productRepository.deleteAll();
+
+        // Create initial product
+        ProductDto create = ProductDto.builder()
+                .productName("Widget")
+                .productCategory("tools")
+                .pricePerItem(10.0)
+                .productQuantity(5)
+                .productDescription("v1")
+                .build();
+        String initialResp = mockMvc.perform(post("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(create)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").exists())
+                .andExpect(jsonPath("$.productCode").isNotEmpty())
+                .andReturn().getResponse().getContentAsString();
+        ProductDto initial = objectMapper.readValue(initialResp, ProductDto.class);
+
+        // Soft-delete it
+        mockMvc.perform(delete("/api/v1/products/" + initial.getProductId()))
+                .andExpect(status().isOk());
+
+        // Re-post with updated fields
+        ProductDto recreate = ProductDto.builder()
+                .productName("Widget")
+                .productCategory("tools")
+                .pricePerItem(12.5)
+                .productQuantity(7)
+                .productDescription("v2")
+                .build();
+        String recreateResp = mockMvc.perform(post("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(recreate)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId", is(initial.getProductId().intValue())))
+                .andExpect(jsonPath("$.productCode", is(initial.getProductCode())))
+                .andExpect(jsonPath("$.productName", is("Widget")))
+                .andExpect(jsonPath("$.productCategory", is("tools")))
+                .andExpect(jsonPath("$.pricePerItem", is(12.5)))
+                .andExpect(jsonPath("$.productQuantity", is(7)))
+                .andReturn().getResponse().getContentAsString();
+        ProductDto reactivated = objectMapper.readValue(recreateResp, ProductDto.class);
+
+        // Ensure it appears in listings
+        mockMvc.perform(get("/api/v1/products"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements", is(1)))
+                .andExpect(jsonPath("$.content[0].productId", is(reactivated.getProductId().intValue())));
+    }
+
+    @Test
+    @WithMockUser(roles = {"ADMIN"})
+    @DisplayName("POST duplicate active product returns 409 Conflict")
+    void postDuplicateActiveProductReturnsConflict() throws Exception {
+        billItemRepository.deleteAll();
+        billRepository.deleteAll();
+        productRepository.deleteAll();
+
+        ProductDto create = ProductDto.builder()
+                .productName("Gadget")
+                .productCategory("tools")
+                .pricePerItem(20.0)
+                .productQuantity(3)
+                .build();
+        mockMvc.perform(post("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(create)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(create)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status", is(409)))
+                .andExpect(jsonPath("$.message", containsString("Product already exists")));
+    }
 }
