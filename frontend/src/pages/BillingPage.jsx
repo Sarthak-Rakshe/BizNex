@@ -185,7 +185,12 @@ const BillingPage = () => {
       // Guard against temporary empty/invalid qty while typing
       const qty = Number(item.billItemQuantity);
       const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 0;
-      return total + item.pricePerUnit * safeQty - item.billItemDiscountPerUnit;
+      // Apply discount per unit times quantity to match backend logic
+      return (
+        total +
+        item.pricePerUnit * safeQty -
+        item.billItemDiscountPerUnit * safeQty
+      );
     }, 0);
   };
 
@@ -705,14 +710,41 @@ const BillingPage = () => {
                             <input
                               type="number"
                               min="0"
-                              step="0.01"
-                              value={item.billItemDiscountPerUnit}
-                              onChange={(e) =>
+                              step="1"
+                              inputMode="numeric"
+                              value={String(item.billItemDiscountPerUnit ?? 0)}
+                              onChange={(e) => {
+                                // Strip non-digits and leading zeros
+                                const raw = e.target.value.replace(
+                                  /[^0-9]/g,
+                                  ""
+                                );
+                                const cleaned = raw.replace(/^0+(\d)/, "$1");
+                                const next =
+                                  cleaned === ""
+                                    ? 0
+                                    : Math.floor(Number(cleaned));
                                 updateItemDiscount(
                                   item.billItemProduct.productId,
-                                  parseFloat(e.target.value) || 0
-                                )
-                              }
+                                  next < 0 ? 0 : next
+                                );
+                              }}
+                              onBlur={(e) => {
+                                // Final normalize to integer without leading zeros
+                                const raw = e.target.value.replace(
+                                  /[^0-9]/g,
+                                  ""
+                                );
+                                const cleaned =
+                                  raw === ""
+                                    ? "0"
+                                    : raw.replace(/^0+(\d)/, "$1");
+                                const next = Math.floor(Number(cleaned));
+                                updateItemDiscount(
+                                  item.billItemProduct.productId,
+                                  next < 0 ? 0 : next
+                                );
+                              }}
                               className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
                             />
                           </td>
@@ -723,7 +755,10 @@ const BillingPage = () => {
                                 (Number(item.billItemQuantity) > 0
                                   ? Number(item.billItemQuantity)
                                   : 0) -
-                              item.billItemDiscountPerUnit
+                              item.billItemDiscountPerUnit *
+                                (Number(item.billItemQuantity) > 0
+                                  ? Number(item.billItemQuantity)
+                                  : 0)
                             ).toFixed(2)}
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap">

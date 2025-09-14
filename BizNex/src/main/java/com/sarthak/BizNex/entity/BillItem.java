@@ -37,7 +37,8 @@ public class BillItem {
 
 
     public double getTotal() {
-        return (pricePerUnit * billItemQuantity) - billItemDiscountPerUnit;
+        // Apply discount per unit for the entire quantity
+        return (pricePerUnit * billItemQuantity) - (billItemDiscountPerUnit * billItemQuantity);
     }
 
     public double getTotalDiscount() {
@@ -49,7 +50,7 @@ public class BillItem {
         //Calculate total price and discount before persisting
         if (billItemProduct != null) {
             this.pricePerUnit = billItemProduct.getPricePerItem();
-            this.billItemTotalPrice = getTotal(); // Example: 10% discount
+            this.billItemTotalPrice = getTotal();
         } else {
             throw new BillInformationInvalidException("Bill item must have a valid product.");
         }
@@ -76,4 +77,3 @@ public class BillItem {
     }
 
 }
-
