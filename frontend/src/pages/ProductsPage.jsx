@@ -33,8 +33,8 @@ const ProductsPage = () => {
   const [formData, setFormData] = useState({
     productName: "",
     productDescription: "",
-    pricePerItem: 0,
-    productQuantity: 0,
+    pricePerItem: "",
+    productQuantity: "",
     productCategory: "",
     productCode: "",
   });
@@ -113,36 +113,71 @@ const ProductsPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    if (!isAdmin) {
+      showError("Not authorized");
+      return;
+    }
 
+    // Basic validation & normalization
+    const name = String(formData.productName || "").trim();
+    const desc = String(formData.productDescription || "").trim();
+    const category = String(formData.productCategory || "").trim();
+    const code = String(formData.productCode || "").trim();
+
+    const price = parseFloat(
+      String(formData.pricePerItem).replace(/[\,\s]/g, "")
+    );
+    const raw = String(formData.productQuantity).replace(/[^\d]/g, "");
+    const qty = raw ? Number(raw) : 0;
+
+    console.log(qty);
+
+    if (!name) {
+      showError("Product name is required");
+      return;
+    }
+    if (!Number.isFinite(price) || price < 0) {
+      showError("Enter a valid non-negative price");
+      return;
+    }
+    if (!Number.isFinite(qty) || qty < 0) {
+      showError("Enter a valid non-negative quantity");
+      return;
+    }
+
+    const payload = {
+      productName: name,
+      pricePerItem: price,
+      productQuantity: qty,
+      ...(desc ? { productDescription: desc } : {}),
+      ...(category ? { productCategory: category } : {}),
+      ...(code ? { productCode: code } : {}),
+    };
+
+    setLoading(true);
     try {
-      if (!isAdmin) {
-        showError("Not authorized");
-        return;
-      }
-      if (editingProduct) {
+      if (editingProduct?.productId) {
         const response = await productAPI.update(
           editingProduct.productId,
-          formData
+          payload
         );
         showSuccess(response.data?.message || "Product updated");
       } else {
-        const response = await productAPI.add(formData);
+        const response = await productAPI.add(payload);
         showSuccess(response.data?.message || "Product added");
       }
 
       await fetchProducts(pageInfo.page);
-      // Ensure new category appears in dropdown if newly added/edited
-      if (formData.productCategory) {
-        const cat = String(formData.productCategory);
-        setCategories((prev) =>
-          prev.includes(cat)
-            ? prev
-            : [...prev, cat].sort((a, b) => a.localeCompare(b))
-        );
-      }
       setIsModalOpen(false);
       resetForm();
+      // If a new category was added, optimistically include it in filter options
+      if (category) {
+        setCategories((cats) =>
+          cats.includes(category)
+            ? cats
+            : [...cats, category].sort((a, b) => a.localeCompare(b))
+        );
+      }
     } catch (error) {
       const msg =
         error?.response?.data?.message || error?.message || "Operation failed";
@@ -151,7 +186,6 @@ const ProductsPage = () => {
       setLoading(false);
     }
   };
-
   const handleEdit = (product) => {
     if (!isAdmin) {
       showError("Not authorized");
@@ -162,8 +196,8 @@ const ProductsPage = () => {
       productId: product.productId,
       productName: product.productName,
       productDescription: product.productDescription || "",
-      pricePerItem: product.pricePerItem,
-      productQuantity: product.productQuantity,
+      pricePerItem: String(product.pricePerItem ?? ""),
+      productQuantity: String(product.productQuantity ?? ""),
       productCategory: product.productCategory || "",
       productCode: product.productCode,
     });
@@ -194,8 +228,8 @@ const ProductsPage = () => {
     setFormData({
       productName: "",
       productDescription: "",
-      pricePerItem: 0,
-      productQuantity: 0,
+      pricePerItem: "",
+      productQuantity: "",
       productCategory: "",
       productCode: "",
     });
@@ -204,12 +238,28 @@ const ProductsPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: ["pricePerItem", "productQuantity"].includes(name)
-        ? parseFloat(value) || 0
-        : value,
-    });
+    if (name === "productQuantity") {
+      const cleaned = String(value).replace(/[\,\s]/g, "");
+      if (cleaned === "") {
+        setFormData((prev) => ({ ...prev, productQuantity: "" }));
+      } else if (/^\d+$/.test(cleaned)) {
+        setFormData((prev) => ({ ...prev, productQuantity: cleaned }));
+      }
+      return;
+    }
+    if (name === "pricePerItem") {
+      const cleaned = String(value).replace(/[\,\s]/g, "");
+      if (cleaned === "") {
+        setFormData((prev) => ({ ...prev, pricePerItem: "" }));
+      } else if (/^\d*\.?\d*$/.test(cleaned)) {
+        setFormData((prev) => ({ ...prev, pricePerItem: cleaned }));
+      }
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   // categories provided by state loaded from all products
@@ -405,8 +455,25 @@ const ProductsPage = () => {
                   step="0.01"
                   required
                   className="input-field"
-                  value={formData.pricePerItem}
+                  value={
+                    formData.pricePerItem === ""
+                      ? ""
+                      : String(formData.pricePerItem)
+                  }
                   onChange={handleChange}
+                  onFocus={() => {
+                    if (
+                      formData.pricePerItem === 0 ||
+                      formData.pricePerItem === "0"
+                    ) {
+                      setFormData({ ...formData, pricePerItem: "" });
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (["e", "E", "+", "-", ",", " "].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </div>
 
@@ -418,10 +485,44 @@ const ProductsPage = () => {
                   type="number"
                   name="productQuantity"
                   min="0"
+                  step="1"
+                  inputMode="numeric"
                   required
                   className="input-field"
-                  value={formData.productQuantity}
+                  value={
+                    formData.productQuantity === ""
+                      ? ""
+                      : String(formData.productQuantity)
+                  }
                   onChange={handleChange}
+                  onBlur={(e) => {
+                    // Normalize to integer string without leading zeros
+                    const cleaned = String(e.target.value).replace(
+                      /[\,\s]/g,
+                      ""
+                    );
+                    if (cleaned === "") return; // leave empty; handled on submit
+                    const n = parseInt(cleaned, 10);
+                    setFormData((prev) => ({
+                      ...prev,
+                      productQuantity:
+                        Number.isFinite(n) && n >= 0 ? String(n) : "",
+                    }));
+                  }}
+                  onFocus={() => {
+                    if (
+                      formData.productQuantity === 0 ||
+                      formData.productQuantity === "0"
+                    ) {
+                      setFormData((prev) => ({ ...prev, productQuantity: "" }));
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    // Prevent non-numeric characters that browsers allow in type=number
+                    if (["e", "E", "+", "-", ".", ",", " "].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </div>
             </div>

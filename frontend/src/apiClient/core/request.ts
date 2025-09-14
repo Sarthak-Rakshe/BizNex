@@ -222,6 +222,23 @@ export const sendRequest = async <T>(
     onCancel(() => source.cancel('The user aborted a request.'));
 
     try {
+        // Dev-only: log outgoing requests for debugging mismatched payloads
+        try {
+            // @ts-ignore - import.meta exists in Vite bundlers
+            const isDev = typeof import.meta !== 'undefined' && (import.meta as any)?.env?.DEV;
+            if (typeof window !== 'undefined' && isDev) {
+                const shouldLogBody = headers['Content-Type']?.includes('application/json');
+                // eslint-disable-next-line no-console
+                console.debug('[HTTP] request', {
+                    method: options.method,
+                    url,
+                    headers,
+                    body: shouldLogBody ? body : undefined,
+                });
+            }
+        } catch (_) {
+            // ignore logging errors
+        }
         return await axiosClient.request(requestConfig);
     } catch (error) {
         const axiosError = error as AxiosError<T>;

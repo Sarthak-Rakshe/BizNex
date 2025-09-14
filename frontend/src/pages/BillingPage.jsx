@@ -153,14 +153,23 @@ const BillingPage = () => {
     setBillItems((prev) =>
       prev.map((item) => {
         if (item.billItemProduct.productId !== productId) return item;
-        const maxQty = Math.max(item.billItemProduct.productQuantity || 1, 1);
-        // Allow empty while typing, but clamp on blur/invalid
+        // Allow empty while typing, normalize on blur/valid
         if (qty === "" || qty === null || Number.isNaN(qty)) {
           return { ...item, billItemQuantity: "" };
         }
-        const n = Number(qty);
-        const clamped = Math.min(Math.max(n, 1), maxQty);
-        return { ...item, billItemQuantity: clamped };
+        let n = Number(qty);
+        // enforce integer and minimum of 1
+        n = Math.floor(n);
+        if (n < 1) n = 1;
+        // For returns, cap max quantity to the originally billed quantity
+        if (billType === "return") {
+          const maxQty = Math.max(
+            item.billItemProduct.productQuantity || item.billItemQuantity || 1,
+            1
+          );
+          n = Math.min(n, maxQty);
+        }
+        return { ...item, billItemQuantity: n };
       })
     );
   };
@@ -173,11 +182,10 @@ const BillingPage = () => {
 
   const calculateTotal = () => {
     return billItems.reduce((total, item) => {
-      return (
-        total +
-        item.pricePerUnit * item.billItemQuantity -
-        item.billItemDiscountPerUnit
-      );
+      // Guard against temporary empty/invalid qty while typing
+      const qty = Number(item.billItemQuantity);
+      const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 0;
+      return total + item.pricePerUnit * safeQty - item.billItemDiscountPerUnit;
     }, 0);
   };
 
@@ -660,7 +668,6 @@ const BillingPage = () => {
                               type="number"
                               min="1"
                               step="1"
-                              max={item.billItemProduct.productQuantity}
                               value={
                                 item.billItemQuantity === ""
                                   ? ""
@@ -675,14 +682,20 @@ const BillingPage = () => {
                               }}
                               onBlur={(e) => {
                                 let val = e.target.value;
-                                const max =
-                                  item.billItemProduct.productQuantity || 1;
                                 if (val === "") val = "1";
-                                const n = Number(val);
-                                const clamped = Math.min(Math.max(n, 1), max);
+                                let n = Math.floor(Number(val));
+                                if (!Number.isFinite(n) || n < 1) n = 1;
+                                // Only clamp to max on returns
+                                if (billType === "return") {
+                                  const max =
+                                    item.billItemProduct.productQuantity ||
+                                    item.billItemQuantity ||
+                                    1;
+                                  n = Math.min(n, Math.max(max, 1));
+                                }
                                 updateItemQuantity(
                                   item.billItemProduct.productId,
-                                  clamped
+                                  n
                                 );
                               }}
                               className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
@@ -706,7 +719,10 @@ const BillingPage = () => {
                           <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                             ₹
                             {(
-                              item.pricePerUnit * item.billItemQuantity -
+                              item.pricePerUnit *
+                                (Number(item.billItemQuantity) > 0
+                                  ? Number(item.billItemQuantity)
+                                  : 0) -
                               item.billItemDiscountPerUnit
                             ).toFixed(2)}
                           </td>

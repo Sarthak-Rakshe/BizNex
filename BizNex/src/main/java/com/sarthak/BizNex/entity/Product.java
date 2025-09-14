@@ -40,6 +40,10 @@ public class Product {
     @Column(nullable = false, unique = true)
     private String productCode; // Unique code for the product
 
+    // Soft-delete flag: active products are visible/selectable; inactive remain for historical linkage
+    @Column(nullable = false)
+    private boolean productActive = true;
+
     @PrePersist
     public void prePersist() {
         // Ensure that the product has a valid name and price before saving
@@ -54,6 +58,7 @@ public class Product {
         if (productQuantity < 0) {
             throw new IllegalArgumentException("Product quantity cannot be negative.");
         }
+        // default active already true
     }
 
     @PreUpdate

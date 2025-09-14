@@ -17,7 +17,6 @@ import java.util.Optional;
 @Repository
 public interface BillRepository extends JpaRepository<Bill, Long> {
 
-//    Optional<Bill> findByBillNumber(String billNumber);
     Optional<Bill> findByBillNumberIgnoreCase(String billNumber);
 
     @EntityGraph(attributePaths = {"customer", "billItems", "billItems.billItemProduct"})
@@ -42,4 +41,8 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     // Hydration query for paged results; uses entity graph to pull related entities in one go
     @EntityGraph(attributePaths = {"customer", "billItems", "billItems.billItemProduct"})
     List<Bill> findByBillIdIn(List<Long> ids);
+
+    // New helpers to check referential integrity before customer deletion
+    boolean existsByCustomer(Customer customer);
+    long countByCustomer(Customer customer);
 }

@@ -66,7 +66,26 @@ public class ProductService {
             productDto.getProductName(), productDto.getProductCategory());
 
         if (existingProduct.isPresent()) {
-            throw new DuplicateEntityException("Product already exists. Please use update to change details.");
+            Product existing = existingProduct.get();
+            if (existing.isProductActive()) {
+                // Active duplicate — disallow
+                throw new DuplicateEntityException("Product already exists. Please use update to change details.");
+            } else {
+                // Reactivate soft-deleted product: update provided fields and mark active
+                if (productDto.getProductDescription() != null) existing.setProductDescription(productDto.getProductDescription());
+                if (productDto.getPricePerItem() != null) existing.setPricePerItem(productDto.getPricePerItem());
+                if (productDto.getProductQuantity() != null) existing.setProductQuantity(productDto.getProductQuantity());
+                // Category and name are same as query parameters; keep as-is but allow explicit overrides if provided (defensive)
+                if (productDto.getProductName() != null) existing.setProductName(productDto.getProductName());
+                if (productDto.getProductCategory() != null) existing.setProductCategory(productDto.getProductCategory());
+                // Preserve existing productCode; only set if explicitly provided and non-blank
+                if (productDto.getProductCode() != null && !productDto.getProductCode().isBlank()) {
+                    existing.setProductCode(productDto.getProductCode());
+                }
+                existing.setProductActive(true);
+                productRepository.save(existing);
+                return productMapper.toDto(existing);
+            }
         } else {
             Product product = productMapper.toEntity(productDto);
             // If productCode is missing or blank, generate a unique one
@@ -81,7 +100,7 @@ public class ProductService {
     /** Retrieve product by id or throw EntityNotFoundException. */
     public ProductDto getProductById(Long id){
         Optional<Product> product = productRepository.findById(id);
-        return productMapper.toDto(product.orElseThrow(()-> new EntityNotFoundException("Product with ID " + id + " not found.")));
+        return productMapper.toDto(product.orElseThrow(() -> new EntityNotFoundException("Product with ID " + id + " not found.")));
     }
 
     /** Paged retrieval of products with default low-stock-first ordering if default sort (productId,asc). */
@@ -90,7 +109,7 @@ public class ProductService {
             Page<Product> page = productRepository.findAllOrderedLowStockFirst(PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()));
             return page.map(productMapper::toDto);
         }
-        Page<Product> page = productRepository.findAll(pageable);
+        Page<Product> page = productRepository.findByProductActiveTrue(pageable);
         return page.map(productMapper::toDto);
     }
 
@@ -122,13 +141,15 @@ public class ProductService {
         return partialUpdateProduct(id, productDto);
     }
 
-    /** Delete product returning deleted representation. */
+    /** Delete product returning deleted representation (soft-delete: mark inactive). */
     @Transactional
     public ProductDto deleteProduct(Long id){
         Optional<Product> existingProduct = productRepository.findById(id);
         if(existingProduct.isPresent()){
-            productRepository.deleteById(id);
-            return productMapper.toDto(existingProduct.get());
+            Product p = existingProduct.get();
+            p.setProductActive(false);
+            productRepository.save(p);
+            return productMapper.toDto(p);
         }else{
             throw new EntityNotFoundException("Product with ID " + id + " not found.");
         }
@@ -137,7 +158,7 @@ public class ProductService {
     /** List products by category (always returns list, may be empty) sorted alphabetically by productName (case-insensitive). */
    public List<ProductDto> getProductByCategory(String category){
         try {
-            List<Product> list = productRepository.findByProductCategory(category);
+            List<Product> list = productRepository.findByProductCategoryAndProductActiveTrue(category);
             return productMapper.toDtoList(
                     list.stream()
                         .sorted(Comparator.comparing(Product::getProductName, String.CASE_INSENSITIVE_ORDER))
@@ -157,7 +178,7 @@ public class ProductService {
 
     /** Name substring search (case-insensitive) returning alphabetically sorted results. */
     public List<ProductDto> searchProductsByName(String productName) {
-        List<Product> products = productRepository.findByProductNameContainingIgnoreCase(productName)
+        List<Product> products = productRepository.findByProductNameContainingIgnoreCaseAndProductActiveTrue(productName)
                 .stream()
                 .sorted(Comparator.comparing(Product::getProductName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
@@ -171,7 +192,7 @@ public class ProductService {
             Page<Product> page = productRepository.findByProductCategoryOrdered(category, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()));
             return page.map(productMapper::toDto);
         }
-        Page<Product> page = productRepository.findByProductCategory(category, pageable);
+        Page<Product> page = productRepository.findByProductCategoryAndProductActiveTrue(category, pageable);
         return page.map(productMapper::toDto);
     }
 
@@ -180,7 +201,7 @@ public class ProductService {
             Page<Product> page = productRepository.searchByNameOrdered(productName, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()));
             return page.map(productMapper::toDto);
         }
-        Page<Product> page = productRepository.findByProductNameContainingIgnoreCase(productName, pageable);
+        Page<Product> page = productRepository.findByProductNameContainingIgnoreCaseAndProductActiveTrue(productName, pageable);
         return page.map(productMapper::toDto);
     }
 }

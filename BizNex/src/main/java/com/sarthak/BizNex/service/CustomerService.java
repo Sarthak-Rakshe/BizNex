@@ -70,7 +70,9 @@ public class CustomerService {
         Optional<Customer> customerOpt = customerRepository.findByCustomerContact(contact);
          if (customerOpt.isPresent()) {
              Customer customer = customerOpt.get();
-             customerRepository.delete(customer);
+             // Soft-delete: mark inactive so historical bills remain intact
+             customer.setCustomerActiveStatus("inactive");
+             customerRepository.save(customer);
              return customerMapper.toDto(customer);
          }
          else {

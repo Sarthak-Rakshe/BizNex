@@ -442,6 +442,11 @@ export const productAPI = {
   },
   add: async (productData) => {
     try {
+      if (typeof import.meta !== "undefined" && import.meta.env?.DEV) {
+        // eslint-disable-next-line no-console
+        console.debug("[API] product.add payload", { ...productData });
+      }
+      console.log(productData);
       const data = await apiClient.productController.addProduct(productData);
       return ok(data);
     } catch (err) {
@@ -450,6 +455,10 @@ export const productAPI = {
   },
   update: async (id, productData) => {
     try {
+      if (typeof import.meta !== "undefined" && import.meta.env?.DEV) {
+        // eslint-disable-next-line no-console
+        console.debug("[API] product.update payload", { id, ...productData });
+      }
       const data = await apiClient.productController.updateProduct(
         id,
         productData
