@@ -4,6 +4,11 @@ A comprehensive business management application designed to streamline operation
 
 Live demo - https://biznex-frontend.onrender.com
 
+#### Admin login
+
+Username : dev (case-sensitive)
+Password : Dev@1234
+
 ## 📸 Screenshots
 
 ### Dashboard
