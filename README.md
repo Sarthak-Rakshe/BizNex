@@ -2,6 +2,8 @@
 
 A comprehensive business management application designed to streamline operations for small and medium-sized enterprises. Built with Spring Boot backend and React frontend, BizNex provides a complete solution for managing customers, inventory, billing, and financial operations.
 
+Live demo - https://biznex-frontend.onrender.com
+
 ## 📸 Screenshots
 
 ### Dashboard
@@ -397,7 +399,6 @@ JWT_REFRESH_EXPIRATION=7200000
 - Use meaningful commit messages
 - Ensure all tests pass before submitting PR
 
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -409,7 +410,6 @@ For support and questions:
 - **Email**: rakshesarthak@gmail.com
 - **Documentation**: Available in Swagger UI
 - **Issues**: GitHub Issues section
-
 
 ---
 
