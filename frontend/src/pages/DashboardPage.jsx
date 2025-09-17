@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import Layout from "../components/Layout/Layout";
 import { useAuth } from "../context/AuthContext";
 import { customerAPI, productAPI, billingAPI } from "../utils/api";
@@ -497,9 +498,9 @@ const DashboardPage = () => {
                 <Receipt className="w-8 h-8 text-primary-600" />
               </div>
               <div className="mt-4">
-                <a href="/billing" className="btn-primary w-full text-center">
+                <Link to="/billing" className="btn-primary w-full text-center">
                   Start Billing
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -516,9 +517,9 @@ const DashboardPage = () => {
                 <Package className="w-8 h-8 text-primary-600" />
               </div>
               <div className="mt-4">
-                <a href="/products" className="btn-primary w-full text-center">
+                <Link to="/products" className="btn-primary w-full text-center">
                   Manage Products
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -535,9 +536,9 @@ const DashboardPage = () => {
                 <CreditCard className="w-8 h-8 text-primary-600" />
               </div>
               <div className="mt-4">
-                <a href="/credits" className="btn-primary w-full text-center">
+                <Link to="/credits" className="btn-primary w-full text-center">
                   View Credits
-                </a>
+                </Link>
               </div>
             </div>
           </div>
