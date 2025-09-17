@@ -12,7 +12,7 @@ import java.util.List;
 public interface ProductMapper {
     ProductMapper INSTANCE = Mappers.getMapper(ProductMapper.class);
     ProductDto toDto(Product product);
-    @Mapping(target = "productActive", ignore = true)
+    @Mapping(target = "productActive", expression = "java(productDto.getProductActive() != null ? productDto.getProductActive() : true)")
     Product toEntity(ProductDto productDto);
 
     List<ProductDto> toDtoList(List<Product> all);

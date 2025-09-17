@@ -446,7 +446,6 @@ export const productAPI = {
         // eslint-disable-next-line no-console
         console.debug("[API] product.add payload", { ...productData });
       }
-      console.log(productData);
       const data = await apiClient.productController.addProduct(productData);
       return ok(data);
     } catch (err) {

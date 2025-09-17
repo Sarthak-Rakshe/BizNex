@@ -24,4 +24,5 @@ public class ProductDto {
     @NotBlank(message = "Product category is required")
     private String productCategory; // e.g., "electronics", "furniture", etc.
     private String productCode; // Unique code for the product
+    private Boolean productActive; // Soft-delete flag: true=active, false=inactive
 }

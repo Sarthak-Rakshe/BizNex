@@ -130,8 +130,6 @@ const ProductsPage = () => {
     const raw = String(formData.productQuantity).replace(/[^\d]/g, "");
     const qty = raw ? Number(raw) : 0;
 
-    console.log(qty);
-
     if (!name) {
       showError("Product name is required");
       return;
