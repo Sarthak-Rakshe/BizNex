@@ -106,6 +106,8 @@ function App() {
 
             {/* Default redirect */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            {/* Catch-all to guard against unknown paths */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
       </Router>
